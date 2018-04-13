@@ -9,7 +9,7 @@ from joblib import Parallel, delayed
 
 class sentence:
     #this class stores the logical representation of a sentence and the natural language representation of a sentence
-    def __init__(self, core, passive, negate, adverb, adjective1, adjective2, determiners):
+    def __init__(self, core, passive, negate, adverb, adjective1, adjective2, determiners, adverb_position):
         self.core = core
         self.passive = passive
         self.negate = negate
@@ -18,19 +18,19 @@ class sentence:
         self.adverb = adverb 
         self.adjective1 = adjective1
         self.adjective2 = adjective2
-        self.adverb_position = ""
+        self.adverb_position = adverb_position
         self.negate_adverb = ""
         self.verb_adverb = ""
         self.sentence_adverb = ""
-        if random.randint(0,1) and self.negate and self.adverb != "": #randomly determine whether the adverb will scope over negation
+        if self.adverb_position == "before negation":
+            assert self.adverb != ""
             self.negate_adverb = self.adverb
-            self.adverb_position = "before negation"
             self.sentence_adverb = ""
             self.verb_adverb = ""
-        elif random.randint(0,1) and self.adverb != "": #randomly determine location of adverb that does not scope over negation
+        if self.adverb_position == "before verb":
+            assert self.adverb != ""
             self.verb_adverb = self.adverb
-            self.adverb_position= "before verb"
-        elif self.adverb != "":
+        if self.adverb_position == "end":
             self.sentence_adverb = self.adverb
             self.adverb_position = "end"
         self.non_passive_verb_index = 0
@@ -163,15 +163,21 @@ def get_cores(data, size=-1):
                     cores.append((agent, verb, thing))
     return cores
 
-def get_word(data,chance, PoS, same=None):
+def get_word(data,chance, PoS, same=""):
     #if chance is 0 the empty string is returned
     #if chance is 1 and same is None then a random word of part of speech PoS is returned
     #otherwise there is a 0.5 chance that same is returned and an 0.5 chance that a random word of part of speech PoS is returned
     result = ""
-    if random.randint(0,chance):
+    if random.randint(1,10) <= chance:
         result = random.choice(data[PoS])
-        if same != None and random.randint(0,chance):
-            result = same
+    if same != "":
+        temp = random.randint(1,3)
+        if temp == 1:
+            return same
+        if temp == 2:
+            return random.choice(data[PoS])
+        if temp == 3:
+            return ""
     return result
 
 def get_label(prover, premise, hypothesis):
@@ -185,26 +191,122 @@ def get_label(prover, premise, hypothesis):
         return "contradicts"
     return "permits"
 
-def generate_example(inputs):
+def generate_random_example(inputs):
     #returns a tuple of premise string, label, hypothesis string, premise object, hypothesis object
     label, prover,data, core1, core2,passive, negate, adjective, adverb = inputs
     determiners = tuple([data["determiners"][random.randint(0, len(data["determiners"]) - 1)] for i in range(2)])
     adverb_word = get_word(data,adverb, "adverbs")
-    adjective_word1 = get_word(data,adjective, "adjectives1")
-    adjective_word2 = get_word(data,adjective, "adjectives2")
-    premise = sentence(core1, random.randint(0,passive), random.randint(0,negate), adverb_word, adjective_word1, adjective_word2, determiners)
+    adjective_word1 = get_word(data,adjective*6, "adjectives1")
+    adjective_word2 = get_word(data,adjective*6, "adjectives2")
+    passive_value = random.randint(0,passive)
+    negation_value = random.randint(0,negate)
+    adverb_location = "" 
+    if adverb_word != "":
+        adverb_location = ["end", "before verb"][random.randint(0,1)]
+        if negation_value:
+            adverb_location = ["end", "before verb", "before negation"][random.randint(0,2)]
+    premise = sentence(core1, passive_value, negation_value, adverb_word, adjective_word1, adjective_word2, determiners, adverb_location)
     determiners = tuple([data["determiners"][random.randint(0, len(data["determiners"]) - 1)] for i in range(2)])
     adverb_word = get_word(data, adverb, "adverbs", adverb_word)
-    adjective_word1 = get_word(data, adjective, "adjectives1", adjective_word1)
-    adjective_word2 = get_word(data, adjective, "adjectives2", adjective_word2)
-    hypothesis = sentence(core2, random.randint(0,passive), random.randint(0,negate), adverb_word, adjective_word1, adjective_word2, determiners)
-    if random.randint(0,1):
-        temp = premise
-        premise = hypothesis
-        hypothesis = temp
+    adjective_word1 = get_word(data, adjective*5, "adjectives1", adjective_word1)
+    adjective_word2 = get_word(data, adjective*5, "adjectives2", adjective_word2)
+    passive_value = random.randint(0,passive)
+    negation_value = random.randint(0,negate)
+    adverb_location = "" 
+    if adverb_word != "":
+        adverb_location = ["end", "before verb"][random.randint(0,1)]
+        if negation_value:
+            adverb_location = ["end", "before verb", "before negation"][random.randint(0,2)]
+    hypothesis = sentence(core2, passive_value, negation_value, adverb_word, adjective_word1, adjective_word2, determiners, adverb_location)
     if label == None:
         label = get_label(prover,premise, hypothesis)
+    print(premise.final)
     return (premise.final, label, hypothesis.final, {"premise":[premise],"hypothesis":[hypothesis]})
+
+def build_file(data):
+    prover = Prover9()
+    prover.config_prover9(r"C:\Program Files (x86)\Prover9-Mace4\bin-win32")
+    core = ["man", ["eats", "eaten", "eat"], "rock"]
+    dets = ["a", "the", "every"]
+    count = 0
+    for pd1_index in range(3):
+        pd1 = dets[pd1_index]
+        for pd2_index in range(3):
+            pd2 = dets[pd2_index]
+            for hd1_index in range(3):
+                hd1 = dets[hd1_index]
+                for hd2_index in range(3):
+                    hd2 = dets[hd2_index]
+                    for ppassive_value in range(2):
+                        for hpassive_value in range(2):
+                            for padj1 in range(2):
+                                if padj1 == 0:
+                                    padj1_word = ""
+                                else:
+                                    padj1_word = random.choice(data["adjectives1"])
+                                for hadj1 in range(2):
+                                    if hadj1 == 0:
+                                        hadj1_word = ""
+                                    else:
+                                        hadj1_word = ""
+                                        while hadj1_word == padj1_word or hadj1_word == "":
+                                            hadj1_word = random.choice(data["adjectives1"])
+                                    for same_adj1 in range(2):
+                                        if same_adj1 == 1 and (padj1 == 0 or hadj1 == 0):
+                                            continue
+                                        elif same_adj1 ==1:
+                                            hadj1_word = padj1_word
+                                        for padj2 in range(2):
+                                            if padj2 == 0:
+                                                padj2_word = ""
+                                            else:
+                                                padj2_word = random.choice(data["adjectives2"])
+                                            for hadj2 in range(2):
+                                                if hadj2 == 0:
+                                                    hadj2_word = ""
+                                                else:
+                                                    hadj2_word = ""
+                                                    while hadj2_word == padj2_word or hadj2_word == "":
+                                                        hadj2_word = random.choice(data["adjectives2"])
+                                                for same_adj2 in range(2):
+                                                    if same_adj2 == 1 and (padj2 == 0 or hadj2 == 0):
+                                                        continue
+                                                    elif same_adj2 ==1:
+                                                        hadj2_word = padj2_word
+                                                    for padv in range(2):
+                                                        if padv == 0:
+                                                            padv_word = ""
+                                                        else:
+                                                            padv_word = random.choice(data["adverbs"])
+                                                        for hadv in range(2):
+                                                            if hadv == 0:
+                                                                hadv_word = ""
+                                                            else:
+                                                                hadv_word = ""
+                                                                while hadv_word == padv_word or hadv_word == "":
+                                                                    hadv_word = random.choice(data["adverbs"])
+                                                            for same_adv in range(2):
+                                                                if same_adv == 1 and (padv == 0 or hadv == 0):
+                                                                    continue
+                                                                elif same_adv ==1:
+                                                                    hadv_word = padv_word
+                                                                for pnegation_value in range(2):
+                                                                    for hnegation_value in range(2):
+                                                                        for padv_location_index in range(4):
+                                                                            padv_location = ["","before verb", "before negation", "end"][padv_location_index]
+                                                                            if (padv_location_index == 2 and pnegation_value == 0) or (padv_location_index != 0 and padv ==0):
+                                                                                continue
+                                                                            for hadv_location_index in range(4):
+                                                                                hadv_location = ["","before verb", "before negation", "end"][hadv_location_index]
+                                                                                if (hadv_location_index == 2 and hnegation_value == 0) or (hadv_location_index != 0 and hadv ==0):
+                                                                                    continue
+                                                                                count += 1
+                                                                                #hypothesis = sentence(core, hpassive_value, hnegation_value, hadv_word, hadj1_word, hadj2_word, [hd1,hd2], hadverb_location)
+                                                                                #premise = sentence(core, ppassive_value, pnegation_value, padv_word, padj1_word, padj2_word, [pd1,pd2], padverb_location)
+                                                                                #label = get_label(prover,premise, hypothesis)
+                                                                                #result[(hpassive_value, hnegation_value, hadv, hadj1, hadj2, hd1_index,hd2_index, hadverb_location_index,ppassive_value, pnegation_value, padv, padj1, padj2, pd1_index,pd2_index, padverb_location_index, same_adj1, same_adj2, same_adv)]
+    print(count)
+
 
 def generate_examples(data, cores, passive, negate, adjective, adverb, distract):
     #returns a list of examples the same length as cores
@@ -213,14 +315,14 @@ def generate_examples(data, cores, passive, negate, adjective, adverb, distract)
     prover.config_prover9(r"C:\Program Files (x86)\Prover9-Mace4\bin-win32")
     cores = cores
     inputs = [[None, prover, data, core, core,passive, negate, adjective, adverb] for core in cores] #generate examples in parallel
-    examples = Parallel(n_jobs=-1,backend="multiprocessing")(map(delayed(generate_example), inputs))
+    examples = Parallel(n_jobs=-1,backend="multiprocessing")(map(delayed(generate_random_example), inputs))
     random.shuffle(cores)
     for core in cores:
         distract -= 1
         if distract> 0:
             cores = [distraction(core, data), core]
             random.shuffle(cores)
-            examples.append(generate_example(["permits", prover,data, cores[0], cores[1],passive, negate, adjective, adverb]))
+            examples.append(generate_random_example(["permits", prover,data, cores[0], cores[1],passive, negate, adjective, adverb]))
     return examples
 
 def distraction(core, data):
@@ -320,9 +422,10 @@ def save_data(examples, name):
 
 if __name__ == "__main__":
     train_data, validation_data, test_data = process_data(0.6)
+    build_file(train_data)
     #print(train_data)
     #print(test_data)
-    train_cores = get_cores(train_data,10)
+    train_cores = get_cores(train_data,100)
     validation_cores = get_cores(validation_data,10)
     test_cores = get_cores(test_data,10)
     print(len(train_cores))
