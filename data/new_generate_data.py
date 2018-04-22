@@ -626,10 +626,103 @@ def generate_balanced_data(filename, boolfilename, size, boolean_size, cores, da
         if hypothesis_conjunction == "then":
             hypothesis_compound = "if " + hypothesis_compound
         examples.append((premise_compound, "entails", hypothesis_compound, [(simple1_encoding, pcore, pcore2), (simple2_encoding, hcore, hcore2), (encoding,)]))
-        print(encoding)
+    for i in range(bool_label_size):
+        encoding = random.choice(bool_ckeys)
+        pcore = cores[(i)%len(cores)]
+        pcore2 = pcore
+        if encoding[3] == 0:
+            simple1_encoding = json.loads(random.choice(ekeys))
+            premise1, hypothesis1 = encoding_to_example(data, simple1_encoding, pcore, pcore2)
+        if encoding[3] == 1:
+            simple1_encoding = json.loads(random.choice(ckeys))
+            premise1, hypothesis1 = encoding_to_example(data, simple1_encoding, pcore, pcore2)
+        if encoding[3] == 2:
+            choice = random.choice(list(pkeys) + distractions)
+            if isinstance(choice, tuple):
+                simple1_encoding = json.loads(choice[1])
+                pcore2 = distraction(pcore,data)
+            else:
+                simple1_encoding = json.loads(choice)
+            premise1, hypothesis1 = encoding_to_example(data,simple1_encoding, pcore, pcore2)
+        hcore = cores[(i + random.randint(1,len(cores)-1))%len(cores)]
+        hcore2 = hcore
+        if encoding[4] == 0:
+            simple2_encoding = json.loads(random.choice(ekeys))
+            premise2, hypothesis2 = encoding_to_example(data, simple2_encoding, hcore, hcore2)
+        if encoding[4] == 1:
+            simple2_encoding = json.loads(random.choice(ckeys))
+            premise2, hypothesis2 = encoding_to_example(data, simple2_encoding, hcore, hcore2)
+        if encoding[4] == 2:
+            choice = random.choice(list(pkeys) + distractions)
+            if isinstance(choice, tuple):
+                simple2_encoding = json.loads(choice[1])
+                hcore2 = distraction(hcore,data)
+            else:
+                simple2_encoding = json.loads(choice)
+            premise2, hypothesis2 = encoding_to_example(data,simple2_encoding, hcore, hcore2)
+        if encoding[2] == 1:
+            temp = premise2
+            premise2 = premise1
+            premise1 = temp
+        conjunctions = ["or", "and", "then"]
+        premise_conjunction = conjunctions[encoding[0]]
+        hypothesis_conjunction = conjunctions[encoding[1]]
+        premise_compound = premise1.final + " " + premise_conjunction + " " + premise2.final
+        hypothesis_compound = hypothesis1.final+ " " + hypothesis_conjunction+ " " + hypothesis2.final
+        if premise_conjunction == "then":
+            premise_compound = "if " + premise_compound
+        if hypothesis_conjunction == "then":
+            hypothesis_compound = "if " + hypothesis_compound
+        examples.append((premise_compound, "contradicts", hypothesis_compound, [(simple1_encoding, pcore, pcore2), (simple2_encoding, hcore, hcore2), (encoding,)]))
+    for i in range(bool_label_size):
+        encoding = random.choice(bool_ekeys)
+        pcore = cores[(i)%len(cores)]
+        pcore2 = pcore
+        if encoding[3] == 0:
+            simple1_encoding = json.loads(random.choice(ekeys))
+            premise1, hypothesis1 = encoding_to_example(data, simple1_encoding, pcore, pcore2)
+        if encoding[3] == 1:
+            simple1_encoding = json.loads(random.choice(ckeys))
+            premise1, hypothesis1 = encoding_to_example(data, simple1_encoding, pcore, pcore2)
+        if encoding[3] == 2:
+            choice = random.choice(list(pkeys) + distractions)
+            if isinstance(choice, tuple):
+                simple1_encoding = json.loads(choice[1])
+                pcore2 = distraction(pcore,data)
+            else:
+                simple1_encoding = json.loads(choice)
+            premise1, hypothesis1 = encoding_to_example(data,simple1_encoding, pcore, pcore2)
+        hcore = cores[(i + random.randint(1,len(cores)-1))%len(cores)]
+        hcore2 = hcore
+        if encoding[4] == 0:
+            simple2_encoding = json.loads(random.choice(ekeys))
+            premise2, hypothesis2 = encoding_to_example(data, simple2_encoding, hcore, hcore2)
+        if encoding[4] == 1:
+            simple2_encoding = json.loads(random.choice(ckeys))
+            premise2, hypothesis2 = encoding_to_example(data, simple2_encoding, hcore, hcore2)
+        if encoding[4] == 2:
+            choice = random.choice(list(pkeys) + distractions)
+            if isinstance(choice, tuple):
+                simple2_encoding = json.loads(choice[1])
+                hcore2 = distraction(hcore,data)
+            else:
+                simple2_encoding = json.loads(choice)
+            premise2, hypothesis2 = encoding_to_example(data,simple2_encoding, hcore, hcore2)
+        if encoding[2] == 1:
+            temp = premise2
+            premise2 = premise1
+            premise1 = temp
+        conjunctions = ["or", "and", "then"]
+        premise_conjunction = conjunctions[encoding[0]]
+        hypothesis_conjunction = conjunctions[encoding[1]]
+        premise_compound = premise1.final + " " + premise_conjunction + " " + premise2.final
+        hypothesis_compound = hypothesis1.final+ " " + hypothesis_conjunction+ " " + hypothesis2.final
+        if premise_conjunction == "then":
+            premise_compound = "if " + premise_compound
+        if hypothesis_conjunction == "then":
+            hypothesis_compound = "if " + hypothesis_compound
+        examples.append((premise_compound, "permits", hypothesis_compound, [(simple1_encoding, pcore, pcore2), (simple2_encoding, hcore, hcore2), (encoding,)]))
     random.shuffle(examples)
-    for e in examples:
-        print(e[0],e[1],e[2],e[3][-1][0], "\n")
     return examples
 
 
