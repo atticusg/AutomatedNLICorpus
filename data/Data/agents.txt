@@ -34,12 +34,7 @@ traitor
 plumber
 doorman
 servant
-german
-spaniard
-cuban
-american
-russian
-italian
+Spaniard
 wrestler
 gymnast
 cyclist
@@ -59,7 +54,7 @@ princess
 murderer
 director
 producer
-mexican
+Mexican
 sailor
 farmer
 hunter
@@ -69,3 +64,9 @@ philosopher
 chemist
 biologist
 physicist
+sociologist
+astrologist
+Brit
+psychologist
+salesman
+playwright

@@ -1,6 +1,5 @@
 rock
 tree
-pebble
 table
 chair
 cup
@@ -23,7 +22,6 @@ pig
 car
 horse
 car
-truck
 cow
 tractor
 baseball
@@ -32,8 +30,6 @@ computer
 calculator
 binder
 notebook
-kitten
-puppy
 keyboard
 mouse
 rat
@@ -41,7 +37,6 @@ book
 couch
 sofa
 monitor
-pony
 sock
 glove
 phone
@@ -64,7 +59,6 @@ fish
 tank
 dresser
 underwear
-plant
 flower
 log
 branch
@@ -80,7 +74,6 @@ racket
 taser
 eraser
 wallet
-gun
 rifle
 handgun
 bongo

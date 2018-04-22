@@ -8,3 +8,10 @@ religious
 coy
 boisterous
 noble
+hopeful
+idealistic
+loving
+friendly
+antagonistic
+thoughtful
+crazy

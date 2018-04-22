@@ -1,22 +1,28 @@
 from __future__ import print_function, division, absolute_import
 import sys, os, random, itertools, collections, math
 import numpy as np
+import json
 from sklearn.metrics import f1_score, accuracy_score, confusion_matrix
+import pickle
 
-def retrieve_from(path, prefix="pi"):
+def retrieve_from(path, joint, prefix="pi"):
     '''
     Read the files in the path and return a dictionary
     from splitnames (str) -> list of inputs in raw string
     '''
-    portion = ['train','val','test', 'jointtest']
-    part = ['prem','label','hyp']
-    potential_names = ['{}.{}'.format(x,y) for x,y in itertools.product(part, portion)]
-    file_paths = [os.path.join(path, "{}.{}".format(prefix,n)) for n in potential_names]
+    portion = ['train','val','test', "nest" ]
+    part = ['sentence1','gold_label','sentence2']
+    potential_names = [(x,y) for x,y in itertools.product(part, portion)]
+    file_paths = [os.path.join(path, joint + "." +  n[1] ) for n in potential_names]
     ret_dict = {}
-    for fname, name in zip(file_paths, potential_names):
+    for fname, n in zip(file_paths, potential_names):
         try:
-            with open(fname,'r', encoding = "utf8") as f:
-                ret_dict[name] = f.read().split('\n')[:-1]
+            with open(fname,'rb') as f:
+                lines = pickle.loads(pickle.load(f))
+                temp = []
+                for line in lines:
+                    temp.append(line[n[0]])
+                ret_dict[n] = temp
         except IOError:
             pass
     return ret_dict
@@ -56,15 +62,15 @@ def get_masked_data(path, **kwargs):
     word_to_id = kwargs['word_to_id']
     mode = kwargs['mode']
     prefix = kwargs['prefix']
-    dat = retrieve_from(path, prefix=prefix)
-    prem, prem_len = zip(*list(map(lambda x: _sent_to_id(x, word_to_id, max_prem_len), *zip(*itertools.zip_longest(dat['prem.{}'.format(mode)])))))
-    hyp, hyp_len = zip(*list(map(lambda x: _sent_to_id(x, word_to_id, max_hyp_len), *zip(*itertools.zip_longest(dat['hyp.{}'.format(mode)])))))
+    dat = retrieve_from(path, kwargs["joint"], prefix=prefix)
+    prem, prem_len = zip(*list(map(lambda x: _sent_to_id(x, word_to_id, max_prem_len), *zip(*itertools.zip_longest(dat[("sentence1", mode)])))))
+    hyp, hyp_len = zip(*list(map(lambda x: _sent_to_id(x, word_to_id, max_hyp_len), *zip(*itertools.zip_longest(dat[("sentence2", mode)])))))
     return {
         "prem": prem,
         "prem_len": prem_len,
         "hyp": hyp,
         "hyp_len": hyp_len,
-        "label": list(map(_label_to_num, *zip(*itertools.zip_longest(dat['label.{}'.format(mode)]))))
+        "label": list(map(_label_to_num, *zip(*itertools.zip_longest(dat[("gold_label", mode)]))))
     }
 
 def get_feed(path, batch_size, **kwargs):
@@ -97,7 +103,7 @@ def get_feed2():
 def _get_word_to_id(glovepath, vocab_limit=None):
     word_to_id = collections.defaultdict(lambda: 0)
     word_to_id['<blank>'] = 1
-    with open(glovepath, 'r', encoding = "utf8") as f:
+    with open(glovepath, 'r') as f:
         i = 2
         for line in f:
             word_to_id[line[:-1]] = i
@@ -115,7 +121,7 @@ def _get_id_to_word(glovepath, vocab_limit=None):
 
 def _get_glove_vec(glovepath, vocab_limit=None):
     mat = []
-    with open(glovepath, "r", encoding = "utf8") as f:
+    with open(glovepath, "r") as f:
         i = 0
         for line in f:
             mat.append(list(map(float, *zip(*itertools.zip_longest(line[:-1].split(' ')[1:])))))

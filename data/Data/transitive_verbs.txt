@@ -13,7 +13,6 @@ sells selled sell
 shows showed show
 offers offered offer
 lends lent lend
-moves moved move
 stops stopped stop
 washes washed wash
 reveres revered revere
@@ -27,7 +26,6 @@ fancies fancied fancy
 detests detested detest
 licks licked lick
 rubs rubbed rub
-touches touched touch
 hugs hugged hug
 kisses kissed kiss
 analyzes analyzed analyze
@@ -42,13 +40,10 @@ dislikes disliked dislike
 draws drawn draw
 examines examined examine
 faces faced face
-feels felt feel
 films filmed film
 finds found find
-grabs grabbed grab
 grips gripped grip
 guards guarded guard
-hits hit hit
 holds held hold
 ignores ignored ignore
 imagines imagined imagine

@@ -1,4 +1,5 @@
 import random
+import json
 import os
 import copy
 import pickle
@@ -24,6 +25,7 @@ class sentence:
         self.sentence_adverb = ""
         if self.adverb_position == "before negation":
             assert self.adverb != ""
+            assert negate == 1
             self.negate_adverb = self.adverb
             self.sentence_adverb = ""
             self.verb_adverb = ""
@@ -224,11 +226,10 @@ def generate_random_example(inputs):
     return (premise.final, label, hypothesis.final, {"premise":[premise],"hypothesis":[hypothesis]})
 
 def build_file(data):
-    prover = Prover9()
-    prover.config_prover9(r"C:\Program Files (x86)\Prover9-Mace4\bin-win32")
     core = ["man", ["eats", "eaten", "eat"], "rock"]
     dets = ["a", "the", "every"]
-    count = 0
+    sentences = []
+    encodings = []
     for pd1_index in range(3):
         pd1 = dets[pd1_index]
         for pd2_index in range(3):
@@ -288,24 +289,34 @@ def build_file(data):
                                                             for same_adv in range(2):
                                                                 if same_adv == 1 and (padv == 0 or hadv == 0):
                                                                     continue
-                                                                elif same_adv ==1:
+                                                                elif same_adv == 1:
                                                                     hadv_word = padv_word
                                                                 for pnegation_value in range(2):
                                                                     for hnegation_value in range(2):
                                                                         for padv_location_index in range(4):
                                                                             padv_location = ["","before verb", "before negation", "end"][padv_location_index]
-                                                                            if (padv_location_index == 2 and pnegation_value == 0) or (padv_location_index != 0 and padv ==0):
+                                                                            if (padv_location_index == 2 and pnegation_value == 0) or (padv_location_index != 0 and padv ==0) or (padv_location_index == 0 and padv ==1):
                                                                                 continue
                                                                             for hadv_location_index in range(4):
                                                                                 hadv_location = ["","before verb", "before negation", "end"][hadv_location_index]
-                                                                                if (hadv_location_index == 2 and hnegation_value == 0) or (hadv_location_index != 0 and hadv ==0):
+                                                                                if (hadv_location_index == 2 and hnegation_value == 0) or (hadv_location_index != 0 and hadv ==0) or (hadv_location_index == 0 and hadv ==1):
                                                                                     continue
-                                                                                count += 1
-                                                                                #hypothesis = sentence(core, hpassive_value, hnegation_value, hadv_word, hadj1_word, hadj2_word, [hd1,hd2], hadverb_location)
-                                                                                #premise = sentence(core, ppassive_value, pnegation_value, padv_word, padj1_word, padj2_word, [pd1,pd2], padverb_location)
-                                                                                #label = get_label(prover,premise, hypothesis)
-                                                                                #result[(hpassive_value, hnegation_value, hadv, hadj1, hadj2, hd1_index,hd2_index, hadverb_location_index,ppassive_value, pnegation_value, padv, padj1, padj2, pd1_index,pd2_index, padverb_location_index, same_adj1, same_adj2, same_adv)]
-    print(count)
+                                                                                sentences.append([sentence(core, ppassive_value, pnegation_value, padv_word, padj1_word, padj2_word, [pd1,pd2], padv_location),sentence(core, hpassive_value, hnegation_value, hadv_word, hadj1_word, hadj2_word, [hd1,hd2], hadv_location)])
+                                                                                encodings.append((ppassive_value, pnegation_value, padv, padj1, padj2, pd1_index,pd2_index, padv_location_index, hpassive_value, hnegation_value, hadv, hadj1, hadj2, hd1_index,hd2_index, hadv_location_index, same_adj1, same_adj2, same_adv))
+    labels = Parallel(n_jobs=-1,backend="multiprocessing")(map(delayed(parallel_labels), sentences[:1]))
+    result = dict()
+    for i in range(len(labels)):
+        result[json.dumps(encodings[i])] = labels[i]
+    with open("big_data" + ".pkl", "w") as f:
+        pickle.dump(json.dumps(result), f, pickle.HIGHEST_PROTOCOL)
+
+
+
+global_prover = Prover9()
+global_prover.config_prover9(r"C:\Program Files (x86)\Prover9-Mace4\bin-win32")
+
+def parallel_labels(x):
+    return get_label(global_prover, x[0], x[1])
 
 
 def generate_examples(data, cores, passive, negate, adjective, adverb, distract):
@@ -330,7 +341,7 @@ def distraction(core, data):
     result = [core[0], core[1], core[2]]
     inds = [0,1,2]
     ind = random.choice(inds)
-    inds.remove(ind)
+    inds.remove(ind) 
     if ind ==0:
         temp = random.choice(data["agents"])
     if ind ==1:
@@ -350,6 +361,47 @@ def distraction(core, data):
                 temp = random.choice(data["things"])
             result[ind] = temp    
     return tuple(result)
+
+def build_boolean_file():
+    logic_operators = ["|", "&", "->"]
+    result = dict()
+    for pindex in range(3):
+        for hindex in range(3):
+            for porder in range(2):
+                horder = 0
+                for first_relation in range(3):
+                    for second_relation in range(3):
+                        first_predicate = "A"
+                        second_predicate = "B"
+                        if porder:
+                            temp = first_predicate
+                            first_predicate = second_predicate
+                            second_predicate = temp
+                        first_assumption = "(" + first_predicate+"(constant)"+logic_operators[pindex] + second_predicate+"(constant)" + ")"
+                        first_predicate = "C"
+                        second_predicate = "D"
+                        conclusion = "(" + first_predicate+"(constant)"+logic_operators[hindex] + second_predicate+"(constant)" + ")"
+                        assumptions = [Expression.fromstring(first_assumption)]
+                        if first_relation == 0:
+                            assumptions.append(Expression.fromstring("A(constant)->C(constant)"))
+                        if first_relation == 1:
+                            assumptions.append(Expression.fromstring("-A(constant)|-C(constant)"))
+                        if second_relation == 0:
+                            assumptions.append(Expression.fromstring("B(constant)->D(constant)"))
+                        if second_relation == 1:
+                            assumptions.append(Expression.fromstring("-B(constant)|-D(constant)"))
+                        label = None 
+                        if global_prover.prove(Expression.fromstring(conclusion), assumptions):
+                            label = "entails"
+                        elif global_prover.prove(Expression.fromstring("-"+conclusion), assumptions):
+                            label = "contradicts"
+                        else:
+                            label = "permits"
+                        result[(pindex, hindex, porder, first_relation, second_relation)] = label
+    with open("boolean_data" + ".pkl", "wb") as f:
+        pickle.dump(str(result), f, pickle.HIGHEST_PROTOCOL)
+
+
 
 def generate_compound(examples, first_predicate, second_predicate, sample, sample_index, conjunction, logic_operator):
     order = random.randint(0,1)
@@ -391,7 +443,7 @@ def generate_boolean_examples(examples, size):
         label = None 
         if prover.prove(Expression.fromstring(conclusion), assumptions):
             label = "entails"
-        if prover.prove(Expression.fromstring("-"+conclusion), assumptions):
+        elif prover.prove(Expression.fromstring("-"+conclusion), assumptions):
             label = "contradicts"
         else:
             label = "permits"
@@ -401,75 +453,205 @@ def generate_boolean_examples(examples, size):
 
 
 def save_data(examples, name):
-    prem = []
-    hyp = []
-    label = []
-    stuff = []
+    data = []
     for example in examples:
-        prem.append(example[0] + "\n")
-        label.append(example[1] + "\n")
-        hyp.append(example[2] + "\n")
-        stuff.append((example[3]))
-    with open("pi." + "prem." + name, "w") as f:
-        f.writelines(prem)
-    with open("pi." + "hyp." + name, "w") as f:
-        f.writelines(hyp)
-    with open("pi." + "label." + name, "w") as f:
-        f.writelines(label)
-    with open("stuff."+ name+ '.pkl', 'wb') as f:
-        pickle.dump(stuff, f, pickle.HIGHEST_PROTOCOL)
+        example_dict = dict()
+        example_dict["sentence1"] = example[0]
+        example_dict["sentence2"] = example[2]
+        example_dict["gold_label"] = example[1]
+        example_dict["example_data"] = example[3]
+        data.append(example_dict)
+    with open(name+ '.pkl', 'wb') as f:
+        pickle.dump(json.dumps(data), f, pickle.HIGHEST_PROTOCOL)
+
+def restricted(restrictions, enc):
+    for i in range(len(enc)):
+        if restrictions[i] < enc[i]:
+            return True
+    return False 
+
+def split_dict(filename, restrictions):
+    with open(filename, 'rb') as f:
+        stuff = pickle.load(f)
+    stuff = json.loads(stuff)
+    e = dict()
+    c = dict()
+    p = dict()
+    for i in stuff:
+        if restricted(restrictions,json.loads(i)):
+            continue
+        if stuff[i] == "entails":
+            e[i] = stuff[i]
+        if stuff[i] == "contradicts":
+            c[i] = stuff[i]
+        if stuff[i] == "permits":
+            p[i] = stuff[i]
+    return e, c, p
+
+def bool_split_dict(filename, restrictions):
+    with open(filename, 'rb') as f:
+        stuff = pickle.load(f)
+    stuff = eval(stuff)
+    e = dict()
+    c = dict()
+    p = dict()
+    for i in stuff:
+        if restricted(restrictions,i):
+            continue
+        if stuff[i] == "entails":
+            e[i] = stuff[i]
+        if stuff[i] == "contradicts":
+            c[i] = stuff[i]
+        if stuff[i] == "permits":
+            p[i] = stuff[i]
+    return e, c, p
+
+def encoding_to_example(data, enc, core1, core2):
+    dets = ["a", "the", "every"]
+    adv_locs = ["","before verb", "before negation", "end"]
+    hadv_word = ""
+    hadj1_word = ""
+    hadj2_word = ""
+    padv_word = ""
+    padj1_word = ""
+    padj2_word = ""
+    if enc[2] == 1:
+        padv_word = random.choice(data["adverbs"])
+    if enc[3] == 1:
+        padj1_word = random.choice(data["adjectives1"])
+    if enc[4] == 1:
+        padj2_word = random.choice(data["adjectives2"])
+    if enc[10] == 1:
+        hadv_word = padv_word
+        if not enc[-1]:
+            while hadv_word == padv_word:
+                hadv_word = random.choice(data["adverbs"])
+    if enc[11] == 1:
+        hadj1_word = padj1_word
+        if not enc[-3]:
+            while hadj1_word == padj1_word:
+                hadj1_word = random.choice(data["adjectives1"])
+    if enc[12] == 1:
+        hadj2_word = padj2_word
+        if not enc[-2]:
+            while hadj2_word == padj2_word:
+                hadj2_word = random.choice(data["adjectives2"])
+    return sentence(core1, enc[0], enc[1], padv_word, padj1_word, padj2_word, [dets[enc[5]],dets[enc[6]]], adv_locs[enc[7]]),sentence(core2, enc[8], enc[9], hadv_word,hadj1_word, hadj2_word, [dets[enc[13]],dets[enc[14]]], adv_locs[enc[15]])
+
+
+def generate_balanced_data(filename, boolfilename, size, boolean_size, cores, data, restrictions=[1000000]*19):
+    e,c,p = split_dict(filename, restrictions)
+    ekeys = list(e.keys())
+    ckeys = list(c.keys())
+    pkeys = list(p.keys())
+    print(len(ekeys), len(ckeys), len(pkeys))
+    allkeys =  ekeys + ckeys + pkeys
+    distractions = []
+    for k in allkeys:
+        distractions.append(("distract", k))
+    label_size = int(size/3)
+    examples = []
+    for i in range(label_size):    
+        encoding = json.loads(random.choice(ekeys))
+        core = cores[i%len(cores)]
+        premise, hypothesis = encoding_to_example(data,encoding, core,core)
+        examples.append((premise.final, "entails", hypothesis.final, [(encoding,core,core)]))
+    for i in range(label_size):    
+        encoding = json.loads(random.choice(ckeys))
+        core = cores[(i+label_size)%len(cores)]
+        premise, hypothesis = encoding_to_example(data,encoding, core, core)
+        examples.append((premise.final, "contradicts", hypothesis.final, [(encoding,core,core)]))
+    for i in range(label_size):    
+        choice = random.choice(list(pkeys) + distractions)
+        core1 = cores[(i+label_size*2)%len(cores)]
+        encoding = None
+        core2 = core1 
+        if isinstance(choice, tuple):
+            encoding = json.loads(choice[1])
+            core2 = distraction(core,data)
+        else:
+            encoding = json.loads(choice)
+        premise, hypothesis = encoding_to_example(data,encoding, core1, core2)
+        examples.append((premise.final, "permits", hypothesis.final, [(encoding,core1,core2)] ))
+    bool_label_size = int(boolean_size/3)
+    bool_e,bool_c,bool_p = bool_split_dict(boolfilename, restrictions)
+    bool_ekeys = list(bool_e.keys())
+    bool_ckeys = list(bool_c.keys())
+    bool_pkeys = list(bool_p.keys())
+    for i in range(bool_label_size):
+        encoding = random.choice(bool_ekeys)
+        pcore = cores[(i)%len(cores)]
+        pcore2 = pcore
+        if encoding[3] == 0:
+            simple1_encoding = json.loads(random.choice(ekeys))
+            premise1, hypothesis1 = encoding_to_example(data, simple1_encoding, pcore, pcore2)
+        if encoding[3] == 1:
+            simple1_encoding = json.loads(random.choice(ckeys))
+            premise1, hypothesis1 = encoding_to_example(data, simple1_encoding, pcore, pcore2)
+        if encoding[3] == 2:
+            choice = random.choice(list(pkeys) + distractions)
+            if isinstance(choice, tuple):
+                simple1_encoding = json.loads(choice[1])
+                pcore2 = distraction(pcore,data)
+            else:
+                simple1_encoding = json.loads(choice)
+            premise1, hypothesis1 = encoding_to_example(data,simple1_encoding, pcore, pcore2)
+        hcore = cores[(i + random.randint(1,len(cores)-1))%len(cores)]
+        hcore2 = hcore
+        if encoding[4] == 0:
+            simple2_encoding = json.loads(random.choice(ekeys))
+            premise2, hypothesis2 = encoding_to_example(data, simple2_encoding, hcore, hcore2)
+        if encoding[4] == 1:
+            simple2_encoding = json.loads(random.choice(ckeys))
+            premise2, hypothesis2 = encoding_to_example(data, simple2_encoding, hcore, hcore2)
+        if encoding[4] == 2:
+            choice = random.choice(list(pkeys) + distractions)
+            if isinstance(choice, tuple):
+                simple2_encoding = json.loads(choice[1])
+                hcore2 = distraction(hcore,data)
+            else:
+                simple2_encoding = json.loads(choice)
+            premise2, hypothesis2 = encoding_to_example(data,simple2_encoding, hcore, hcore2)
+        if encoding[2] == 1:
+            temp = premise2
+            premise2 = premise1
+            premise1 = temp
+        conjunctions = ["or", "and", "then"]
+        premise_conjunction = conjunctions[encoding[0]]
+        hypothesis_conjunction = conjunctions[encoding[1]]
+        premise_compound = premise1.final + " " + premise_conjunction + " " + premise2.final
+        hypothesis_compound = hypothesis1.final+ " " + hypothesis_conjunction+ " " + hypothesis2.final
+        if premise_conjunction == "then":
+            premise_compound = "if " + premise_compound
+        if hypothesis_conjunction == "then":
+            hypothesis_compound = "if " + hypothesis_compound
+        examples.append((premise_compound, "entails", hypothesis_compound, [(simple1_encoding, pcore, pcore2), (simple2_encoding, hcore, hcore2), (encoding,)]))
+        print(encoding)
+    random.shuffle(examples)
+    for e in examples:
+        print(e[0],e[1],e[2],e[3][-1][0], "\n")
+    return examples
+
 
 
 if __name__ == "__main__":
-    train_data, validation_data, test_data = process_data(0.6)
-    build_file(train_data)
-    #print(train_data)
-    #print(test_data)
-    train_cores = get_cores(train_data,100)
-    validation_cores = get_cores(validation_data,10)
-    test_cores = get_cores(test_data,10)
-    print(len(train_cores))
-    #human_test(test_data, test_cores[0],1,1)
-    if True:
-        train_examples = generate_examples(train_data, train_cores,1,1,1,1, len(train_cores)/5)
-        validation_examples = generate_examples(validation_data, validation_cores,1,1,1,1,len(validation_cores)/5)
-        test_examples = generate_examples(test_data, test_cores,1,1,1,1, len(test_cores)/5)
-        print(train_examples)
-        print("next1")
-        print(len(validation_examples))
-        print("next2")
-        print(len(test_examples))
-        count = 0
-        count1 = 0
-        for example in train_examples:
-            if example[1] == "permits":
-                count +=1
-            if example[1] == "entails":
-                count1 +=1
-        print(count/len(train_examples))
-        print(count1/len(train_examples))
-        print(1 - (count + count1)/len(train_examples))
-        train_examples += generate_boolean_examples(train_examples, len(train_examples))
-        validation_examples += generate_boolean_examples(validation_examples, len(validation_examples))
-        test_examples += generate_boolean_examples(test_examples, len(test_examples))
-        print(train_examples)
-        print(len(train_examples))
-        print("next")
-        print(len(validation_examples))
-        print("next")
-        print(len(test_examples))
-        count = 0
-        count1 = 0
-        for example in train_examples:
-            if example[1] == "permits":
-                count +=1
-            if example[1] == "entails":
-                count1 +=1
-        print(count/len(train_examples))
-        print(count1/len(train_examples))
-        print(1 - (count + count1)/len(train_examples))
-        random.shuffle(train_examples)
-        save_data(train_examples[50000:], "train")
-        save_data(validation_examples, "val")
-        save_data(test_examples, "test")
-        save_data(train_examples[0:50000], "jointtest")
+    #encodings.append([pindex, hindex, porder, horder,first_relation, second_relation])
+    build_boolean_file()
+    data, _, _ = process_data(1.0)
+    cores = get_cores(data)
+    size = 2000000
+    examples = generate_balanced_data("big_data.pkl", "boolean_data.pkl",6,50 , cores, data)
+    save_data(examples[:int(size*0.9)], "simpletrainjoint")
+    save_data(examples[int(size*0.9):int(size*0.95)], "simplevaljoint")
+    save_data(examples[int(size*0.95):], "simpletestjoint")
+    train_data, val_data, test_data = process_data(0.6)
+    train_cores = get_cores(train_data)
+    val_cores = get_cores(val_data)
+    test_cores = get_cores(test_data)
+    size = 2000000
+    train_examples = generate_balanced_data("big_data.pkl","boolean_data.pkl",2000000, 0, cores, train_data)
+    val_examples = generate_balanced_data("big_data.pkl","boolean_data.pkl",2000000, 0, cores, val_data)
+    test_examples = generate_balanced_data("big_data.pkl","boolean_data.pkl",2000000, 0, cores, test_data)
+    save_data(examples[:int(size*0.9)], "simpletraindisjoint")
+    save_data(examples[int(size*0.9):int(size*0.95)], "simplevaldisjoint")
+    save_data(examples[int(size*0.95):], "simpletestdisjoint")
