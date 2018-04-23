@@ -1,7 +1,5 @@
 accidentally  
 awkwardly 
-boldly  
-coyly 
 deliberately 
 dutifully  
 gleefully  
@@ -11,7 +9,6 @@ justly
 madly 
 nervously 
 occasionally  
-politely 
 rudely 
 seriously 
 sternly 

@@ -56,3 +56,5 @@ Washingtonian
 Oklahoman
 Alabaman
 Mississippian
+quick
+slow

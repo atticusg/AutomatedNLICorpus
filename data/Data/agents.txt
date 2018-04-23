@@ -34,7 +34,6 @@ traitor
 plumber
 doorman
 servant
-Spaniard
 wrestler
 gymnast
 cyclist
@@ -54,7 +53,6 @@ princess
 murderer
 director
 producer
-Mexican
 sailor
 farmer
 hunter

@@ -461,7 +461,7 @@ def save_data(examples, name):
         example_dict["gold_label"] = example[1]
         example_dict["example_data"] = example[3]
         data.append(example_dict)
-    with open(name+ '.pkl', 'wb') as f:
+    with open(name, 'wb') as f:
         pickle.dump(json.dumps(data), f, pickle.HIGHEST_PROTOCOL)
 
 def restricted(restrictions, enc):
@@ -734,9 +734,9 @@ if __name__ == "__main__":
     cores = get_cores(data)
     size = 2000000
     examples = generate_balanced_data("big_data.pkl", "boolean_data.pkl",6,50 , cores, data)
-    save_data(examples[:int(size*0.9)], "simpletrainjoint")
-    save_data(examples[int(size*0.9):int(size*0.95)], "simplevaljoint")
-    save_data(examples[int(size*0.95):], "simpletestjoint")
+    save_data(examples[:int(size*0.9)], "simplejoint.train")
+    save_data(examples[int(size*0.9):int(size*0.95)], "simplejoint.val")
+    save_data(examples[int(size*0.95):], "simplejoint.test")
     train_data, val_data, test_data = process_data(0.6)
     train_cores = get_cores(train_data)
     val_cores = get_cores(val_data)
@@ -745,6 +745,6 @@ if __name__ == "__main__":
     train_examples = generate_balanced_data("big_data.pkl","boolean_data.pkl",2000000, 0, cores, train_data)
     val_examples = generate_balanced_data("big_data.pkl","boolean_data.pkl",2000000, 0, cores, val_data)
     test_examples = generate_balanced_data("big_data.pkl","boolean_data.pkl",2000000, 0, cores, test_data)
-    save_data(examples[:int(size*0.9)], "simpletraindisjoint")
-    save_data(examples[int(size*0.9):int(size*0.95)], "simplevaldisjoint")
-    save_data(examples[int(size*0.95):], "simpletestdisjoint")
+    save_data(examples[:int(size*0.9)], "simpledisjoint.train")
+    save_data(examples[int(size*0.9):int(size*0.95)], "simpledisjoint.val")
+    save_data(examples[int(size*0.95):], "simpledisjoint.test")

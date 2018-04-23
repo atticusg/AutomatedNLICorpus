@@ -26,7 +26,6 @@ cow
 tractor
 baseball
 television
-computer
 calculator
 binder
 notebook
@@ -59,7 +58,6 @@ fish
 tank
 dresser
 underwear
-flower
 log
 branch
 bench
@@ -91,3 +89,12 @@ helmet
 spork
 straw
 bucket
+elephant
+igloo
+daisy
+rose
+tulip
+cardigan
+viola
+harpsichord
+saxophone
