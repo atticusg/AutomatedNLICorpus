@@ -6,6 +6,7 @@ import pickle
 from nltk.sem.logic import *
 from nltk.inference import *
 from nltk import Prover9
+from nltk.corpus import wordnet
 from joblib import Parallel, delayed
 
 class sentence:
@@ -725,12 +726,34 @@ def generate_balanced_data(filename, boolfilename, size, boolean_size, cores, da
     random.shuffle(examples)
     return examples
 
+def check_data(data):
+    for k in ["agents"]:#data:
+        result = set()
+        x = copy.copy(data[k])
+        for w in data[k]:
+            if k == "transitive_verbs":
+                w = w[2]
+            for w2 in x:
+                if k == "transitive_verbs":
+                    w2 = w2[2]
+                if w == w2:
+                    continue
+                a = wordnet.synsets(w)
+                b = wordnet.synsets(w2)
+                for t in a:
+                    for s in b:
+                        if t in s.hypernyms() or s in t.hypernyms():
+                            result.add((w,w2))
+        print(result)
+
 
 
 if __name__ == "__main__":
     #encodings.append([pindex, hindex, porder, horder,first_relation, second_relation])
     build_boolean_file()
     data, _, _ = process_data(1.0)
+    check_data(data)
+     
     cores = get_cores(data)
     size = 2000000
     examples = generate_balanced_data("big_data.pkl", "boolean_data.pkl",6,50 , cores, data)
