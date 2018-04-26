@@ -16,7 +16,6 @@ dog
 pig
 car
 horse
-car
 cow
 tractor
 baseball
@@ -97,4 +96,5 @@ panther
 lemur
 armadillo
 chameleon
-watch
+iguana
+can

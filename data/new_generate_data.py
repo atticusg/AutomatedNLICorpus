@@ -727,19 +727,21 @@ def generate_balanced_data(filename, boolfilename, size, boolean_size, cores, da
     return examples
 
 def check_data(data):
-    print(wordnet.synsets("dog"))
-    for x in wordnet.synsets("dog"):
-        print(x.hypernyms)
-    print(wordnet.synsets("tree"))
-    for x in wordnet.synsets("tree"):
-        print(x.hypernyms)
-    for k in ["things"]:#data:
+    for k in data:
+        result = set()
+        for i in range(len(data[k])):
+            for j in range(i+1, len(data[k])):
+                if data[k][i] == data[k][j]:
+                    print(data[k][i])
+    for k in ["transitive_verbs"]:#data:
         result = set()
         x = copy.copy(data[k])
-        for w in data[k]:
+        for i in range(len(data[k])):
+            w = data[k][i]
             if k == "transitive_verbs":
                 w = w[2]
-            for w2 in x:
+            for j in range(i+1, len(data[k])):
+                w2 = data[k][j]
                 if k == "transitive_verbs":
                     w2 = w2[2]
                 if w == w2:
@@ -750,6 +752,10 @@ def check_data(data):
                     for s in b:
                         if t in s.hypernyms() or s in t.hypernyms():
                             result.add((w,w2))
+                        for q in t.lemmas():
+                            for e in s.lemmas():
+                                if q in e.antonyms() or e in q.antonyms():
+                                    result.add((w,w2))
         print(result)
 
 
