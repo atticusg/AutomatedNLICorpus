@@ -1,13 +1,9 @@
-rock
 tree
-table
 chair
 cup
-glass
 shoe
 shirt
 belt
-ball
 pencil
 pen
 marble
@@ -17,7 +13,6 @@ refrigerator
 bed
 door
 dog
-cat
 pig
 car
 horse
@@ -32,7 +27,6 @@ notebook
 keyboard
 mouse
 rat
-book
 couch
 sofa
 monitor
@@ -45,7 +39,6 @@ knife
 fork
 spoon
 bowl
-plate
 novel
 piano
 tuba
@@ -59,7 +52,6 @@ tank
 dresser
 underwear
 log
-branch
 bench
 mug
 mirror
@@ -98,3 +90,11 @@ cardigan
 viola
 harpsichord
 saxophone
+rhino
+lion
+tiger
+panther
+lemur
+armadillo
+chameleon
+watch

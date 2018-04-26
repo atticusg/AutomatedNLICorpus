@@ -727,7 +727,13 @@ def generate_balanced_data(filename, boolfilename, size, boolean_size, cores, da
     return examples
 
 def check_data(data):
-    for k in ["agents"]:#data:
+    print(wordnet.synsets("dog"))
+    for x in wordnet.synsets("dog"):
+        print(x.hypernyms)
+    print(wordnet.synsets("tree"))
+    for x in wordnet.synsets("tree"):
+        print(x.hypernyms)
+    for k in ["things"]:#data:
         result = set()
         x = copy.copy(data[k])
         for w in data[k]:
